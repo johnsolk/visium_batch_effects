@@ -1,6 +1,6 @@
 # visium_batch_effects
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/johnsolk/visium_batch_effects/HEAD)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/johnsolk/visium_batch_effects/HEAD?urlpath=rstudio)
 
 Tutorial correcting batch effects in 10x Visium data using Harmony: 
 
