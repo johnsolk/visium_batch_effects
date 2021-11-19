@@ -1,0 +1,126 @@
+---
+title: "batch effect correction, reclustering, and loading into loupe"
+output: html_notebook
+Author: Mike and Juan and Lisa
+---
+
+There is significant batch effect that we see between the staining protocols in Visium data. They are the same tissues so the gene expression should have been similar in the sections before staining. staining should not affect gene expression. A batch effect corrections should bring the cells into alignment. in additions we have the benefit of having the tissue to confirm that the spots that are brought into accordance in the UMAP space are in similar locations on the tissue section.
+
+There are a number of algorithms and tools for correcting batch effects. You can get an introduction to batch effects and batch effect correction in the article here. For this tutorial we are going to use the harmony batch effect correction algorithm implemented in the Seurat R package.  
+
+## start by loading some libraries
+```{r}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(cowplot)
+library(harmony)
+#install.packages("dplyr")
+#install.packages("patchwork")
+#install.packages("Seurat")
+#install.packages("cowplot")
+#install.packages("harmony")
+```
+
+## Load and combine data sets.
+This section use the method in the seurat vignette here: https://satijalab.org/seurat/v3.2/merge_vignette.html
+It makes two seurat objects and merges them together later.
+
+## Download the files
+Download IF filitered matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain_Coronal_Section_1
+H&E matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain
+
+```{r}
+# set working directory to your current location
+setwd("~/Documents/travelguide/spatial_batcheffects")
+# create a local directory called "IF_brain"
+dir.create(path = 'IF_brain/')
+# set working directory to the newly-created IF_brain directory
+setwd("IF_brain")
+# download IF filtered matrix:
+download.file("https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Adult_Mouse_Brain_Coronal_Section_1/V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz","V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz")
+# decompress the filtered matrix file just downloaded
+untar("V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz")
+# create a local directory called "BF_brain
+dir.create(path = '../BF_brain/')
+setwd("../BF_brain")
+download.file("https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Adult_Mouse_Brain/V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz","V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz")
+untar("V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz")
+setwd("../")
+```
+## Make the seurat objects
+```{r}
+IF_brain.data <- Read10X(data.dir = "IF_brain/filtered_feature_bc_matrix/")
+IF_brain<- CreateSeuratObject(counts = IF_brain.data, project = "IF")
+IF_brain
+BF_brain.data <- Read10X(data.dir = "BF_brain/filtered_feature_bc_matrix/")
+BF_brain<- CreateSeuratObject(counts = BF_brain.data, project = "BF")
+BF_brain
+```
+
+## Use the merge command to combine the objects
+```{r}
+brain.combined <- merge(IF_brain, y = BF_brain, add.cell.ids = c("IF", "BF"), project = "2brains")
+head(colnames(brain.combined))
+tail(colnames(brain.combined))
+```
+This object creation and merging was adapted from the Vignette here: https://satijalab.org/seurat/v3.2/merge_vignette.html
+
+## First visualize the data before running batch effect correction
+There are a fiew
+```{r}
+brain.combined <- NormalizeData(brain.combined) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
+brain.combined <- RunUMAP(brain.combined, dims = 1:30)
+DimPlot(brain.combined, group.by = "orig.ident")
+```
+We can see the two samples are not mixed well.
+
+## Run harmony
+The next few commands are adapted from the vignette here: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/harmony.html
+```{r}
+#brain.combined <- NormalizeData(brain.combined) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
+brain.combined <- RunHarmony(brain.combined, group.by.vars = "orig.ident")
+brain.combined <- RunUMAP(brain.combined, reduction = "harmony", dims = 1:30)
+brain.combined <- FindNeighbors(brain.combined, reduction = "harmony", dims = 1:30) %>% FindClusters()
+DimPlot(brain.combined, group.by = "orig.ident")
+DimPlot(brain.combined, group.by = "ident")
+DimPlot(brain.combined, group.by = "ident", split.by = 'orig.ident')
+```
+Now the two samples are mixed nicely together.
+
+# Export the UMAP projection to a csv that can be loaded into Loupe
+Some of the code below is from: https://github.com/satijalab/seurat/issues/1391
+Split the matrix, edit the barcode into a Loupe-compatible format, then merge into a new matrix.
+```{r}
+corrected.data <- SplitObject(brain.combined, split.by = "orig.ident")
+
+IF.barcode <- rownames(Embeddings(object = corrected.data$IF, reduction = "umap"))
+IF.barcode <- gsub("IF_","",IF.barcode)
+IF.barcode <- gsub('.{2}$','',IF.barcode)
+IF.barcode <- paste(IF.barcode,"-1", sep="")
+IF.proj <- Embeddings(object = corrected.data$IF, reduction = "umap")
+UMAP.IF <- cbind("Barcode" = IF.barcode, IF.proj)
+
+BF.barcode <- rownames(Embeddings(object = corrected.data$BF, reduction = "umap"))
+BF.barcode <- gsub("BF_","",BF.barcode)
+BF.barcode <- gsub('.{2}$','',BF.barcode)
+BF.barcode <- paste(BF.barcode,"-2", sep="")
+BF.proj<- Embeddings(object = corrected.data$BF, reduction = "umap")
+UMAP.BF <- cbind("Barcode" = BF.barcode, BF.proj)
+
+corrected.umap <- rbind(UMAP.IF,UMAP.BF)
+write.table(corrected.umap, file="corrected_umap.csv", sep = ",", quote = F, row.names = F, col.names = T)
+```
+
+## Export the clusters to a csv that can be loaded into Loupe
+```{r}
+clusters.IF = Idents(corrected.data$IF)
+clusters.IF.data <- cbind("Barcode" = IF.barcode, data.frame("clusters" = clusters.IF))
+
+clusters.BF = Idents(corrected.data$BF)
+clusters.BF.data <- cbind("Barcode" = BF.barcode, data.frame("clusters" = clusters.BF))
+
+corrected.cluster <- rbind(clusters.IF.data, clusters.BF.data)
+write.table(corrected.cluster, file="corrected_clusters.csv", sep = ",", quote = F, row.names = F, col.names = T)
+```
+

@@ -1,0 +1,5 @@
+install.packages("dplyr")
+install.packages("Seurat")
+install.packages("patchwork")
+install.packages("cowplot")
+install.packages("harmony")
