@@ -32,7 +32,7 @@ H&E matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1
 
 ```{r}
 # set working directory to your current location
-setwd("~/Documents/travelguide/spatial_batcheffects")
+setwd("~/")
 # create a local directory called "IF_brain"
 dir.create(path = 'IF_brain/')
 # set working directory to the newly-created IF_brain directory
