@@ -1,6 +1,6 @@
 install.packages("dplyr")
 install.packages("remotes")
-remotes::install_version("Seurat", version = "3.2.3")
+remotes::install_version(package = 'Seurat', version = package_version('3.2.3'))
 install.packages("patchwork")
 install.packages("cowplot")
 install.packages("harmony")
