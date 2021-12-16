@@ -1,6 +1,5 @@
-install.packages("hdf5r")
 install.packages("dplyr")
-install.packages("Seurat")
+remotes::install_version("Seurat", version = "3.2.3")
 install.packages("patchwork")
 install.packages("cowplot")
 install.packages("harmony")
