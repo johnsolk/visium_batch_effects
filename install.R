@@ -1,6 +1,6 @@
 install.packages("dplyr")
-install.packages("remotes")
-remotes::install_version(package = 'Seurat', version = package_version('3.2.3'))
+install.packages("spatstat")
+install.packages("https://github.com/satijalab/seurat/archive/refs/tags/v3.2.3.tar.gz",repos=NULL)
 install.packages("patchwork")
 install.packages("cowplot")
 install.packages("harmony")
