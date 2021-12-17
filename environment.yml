@@ -4,4 +4,5 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - r-reticulate">1.0"
   - r-seurat
