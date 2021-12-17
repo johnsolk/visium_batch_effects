@@ -1,12 +1,11 @@
 name: tutorial-seurat-conda
 channels:
   - conda-forge
-  - bioconda/label/gcc7
+  - bioconda
   - defaults
 dependencies:
   - libgcc=5.2.0 
   - r-base=3.6
   - r-tidyverse
   - r-seurat
-  - seurat-scripts
   - r-harmony
