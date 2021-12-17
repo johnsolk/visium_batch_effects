@@ -1,6 +1,5 @@
 install.packages("dplyr")
-install.packages("spatstat")
-install.packages("https://github.com/satijalab/seurat/archive/refs/tags/v3.2.3.tar.gz",repos=NULL)
+install.packages("libhdf5-dev")
 install.packages("patchwork")
 install.packages("cowplot")
 install.packages("harmony")
