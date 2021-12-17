@@ -1,5 +1,3 @@
 install.packages("dplyr")
-install.packages("libhdf5-dev")
 install.packages("patchwork")
 install.packages("cowplot")
-install.packages("harmony")
