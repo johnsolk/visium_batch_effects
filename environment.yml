@@ -9,4 +9,3 @@ dependencies:
   - r-base=3.6
   - r-tidyverse
   - r-seurat
-  - r-harmony
