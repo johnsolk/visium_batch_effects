@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - libgcc=5.2.0
   - r-rcpp
   - r-base=3.6
   - r-tidyverse
