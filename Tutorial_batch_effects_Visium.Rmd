@@ -15,11 +15,6 @@ library(Seurat)
 library(patchwork)
 library(cowplot)
 library(harmony)
-#install.packages("dplyr")
-#install.packages("patchwork")
-#install.packages("Seurat")
-#install.packages("cowplot")
-#install.packages("harmony")
 ```
 
 ## Load and combine data sets.
@@ -31,29 +26,23 @@ Download IF filitered matrix: https://support.10xgenomics.com/spatial-gene-expre
 H&E matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain
 
 ```{r}
-# set working directory to your current location
 setwd("~/")
-# create a local directory called "IF_brain"
-dir.create(path = 'IF_brain/')
-# set working directory to the newly-created IF_brain directory
-setwd("IF_brain")
 # download IF filtered matrix:
 download.file("https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Adult_Mouse_Brain_Coronal_Section_1/V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz","V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz")
 # decompress the filtered matrix file just downloaded
 untar("V1_Adult_Mouse_Brain_Coronal_Section_1_filtered_feature_bc_matrix.tar.gz")
+file.rename("filtered_feature_bc_matrix","IF_brain_filtered_feature_bc_matrix")
 # create a local directory called "BF_brain
-dir.create(path = '../BF_brain/')
-setwd("../BF_brain")
 download.file("https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Adult_Mouse_Brain/V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz","V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz")
 untar("V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz")
-setwd("../")
+file.rename("filtered_feature_bc_matrix","BF_brain_filtered_feature_bc_matrix")
 ```
 ## Make the seurat objects
 ```{r}
-IF_brain.data <- Read10X(data.dir = "IF_brain/filtered_feature_bc_matrix/")
+IF_brain.data <- Read10X(data.dir = "IF_brain_filtered_feature_bc_matrix/")
 IF_brain<- CreateSeuratObject(counts = IF_brain.data, project = "IF")
 IF_brain
-BF_brain.data <- Read10X(data.dir = "BF_brain/filtered_feature_bc_matrix/")
+BF_brain.data <- Read10X(data.dir = "BF_brain_filtered_feature_bc_matrix/")
 BF_brain<- CreateSeuratObject(counts = BF_brain.data, project = "BF")
 BF_brain
 ```
