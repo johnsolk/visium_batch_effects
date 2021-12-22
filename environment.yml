@@ -4,8 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - r-base=4.1.0
-  - r-irkernel=1.2
+  - r-base
   - r-tidyverse
   - r-seurat
-  - r-harmony
