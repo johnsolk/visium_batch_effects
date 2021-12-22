@@ -4,11 +4,23 @@ output: html_notebook
 Author: Mike and Juan and Lisa
 ---
 
-There is significant batch effect that we see between the staining protocols in Visium data. They are the same tissues so the gene expression should have been similar in the sections before staining. staining should not affect gene expression. A batch effect corrections should bring the cells into alignment. in additions we have the benefit of having the tissue to confirm that the spots that are brought into accordance in the UMAP space are in similar locations on the tissue section.
+We see batch effects between Bright Field (BF) and Immunofluorescence (IF) imaging in Spatial Gene Expression data. Since data are from the same tissues, we would expect gene expression to be similar between sections before staining. Staining should not affect gene expression.
 
-There are a number of algorithms and tools for correcting batch effects. You can get an introduction to batch effects and batch effect correction in the article here. For this tutorial we are going to use the harmony batch effect correction algorithm implemented in the Seurat R package.  
+First, we combine Spatial Gene Expression data from two samples from the same tissue, each with a different staining protocol. The data can be combined by running the spaceranger aggr pipeline to combine these data using the following command:
 
-## start by loading some libraries
+```
+spaceranger aggr --id=staining_IF_BF --csv=IF_BF.csv
+```
+When we load the .cloupe file output from the aggr pipeline into the Loupe Browser, we see this batch effect (see image below) where the two BF (blue) and IF (brown) samples are separated from each other.
+
+Correcting for this batch effect should bring the cells into alignment.
+
+There are a number of algorithms and tools for correcting batch effects. For more information on batch effects and batch effect correction, see this introduction: Batch Effect Correction.
+
+For this tutorial we are going to use the Harmony batch effect correction algorithm (Korsunsky et al. 2019) implemented in the Seurat R package. The Harmony algorithm is available on GitHub, and the authors of Seurat wrote an integration function in the Seurat package.
+
+##  Load Libraries
+
 ```{r}
 library(dplyr)
 library(Seurat)
@@ -17,13 +29,16 @@ library(cowplot)
 library(harmony)
 ```
 
-## Load and combine data sets.
-This section use the method in the seurat vignette here: https://satijalab.org/seurat/v3.2/merge_vignette.html
-It makes two seurat objects and merges them together later.
+# Download the files
 
-## Download the files
-Download IF filitered matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain_Coronal_Section_1
-H&E matrix: https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain
+The dataset with the IF filitered matrix can be found here:
+
+https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain
+
+The dataset with the BF matrix can be found here:
+
+https://support.10xgenomics.com/spatial-gene-expression/datasets/1.1.0/V1_Adult_Mouse_Brain_Coronal_Section_1
+
 
 ```{r}
 setwd("~/")
@@ -37,7 +52,14 @@ download.file("https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Adult_Mou
 untar("V1_Adult_Mouse_Brain_filtered_feature_bc_matrix.tar.gz")
 file.rename("filtered_feature_bc_matrix","BF_brain_filtered_feature_bc_matrix")
 ```
-## Make the seurat objects
+## Load and Combine Data Sets
+
+This section uses commands found in this Seurat vignette. It creates two Seurat objects and merges them together.
+
+Seurat "objects" are a type of data that contain your UMI counts, barcodes, and gene features all in one variable. The Seurat tool has a function called "Read10X()" that will automatically take a directory containing the matrices output from Cell Ranger and input them into the R environment so you don't have to worry about doing this manually. We rely on this function to save us many steps.
+
+We will start by creating two Seurat objects, one for each data set and then take a look at it:
+
 ```{r}
 IF_brain.data <- Read10X(data.dir = "IF_brain_filtered_feature_bc_matrix/")
 IF_brain<- CreateSeuratObject(counts = IF_brain.data, project = "IF")
@@ -47,7 +69,12 @@ BF_brain<- CreateSeuratObject(counts = BF_brain.data, project = "BF")
 BF_brain
 ```
 
-## Use the merge command to combine the objects
+The output of "BF_brain" and "IF_brain" should be similar.
+
+## Merge Objects
+
+Use the merge function to combine the objects. Use the head and the tail functions to check how the data look, to make sure that they are equivalent.
+
 ```{r}
 brain.combined <- merge(IF_brain, y = BF_brain, add.cell.ids = c("IF", "BF"), project = "2brains")
 head(colnames(brain.combined))
@@ -55,14 +82,16 @@ tail(colnames(brain.combined))
 ```
 This object creation and merging was adapted from the Vignette here: https://satijalab.org/seurat/v3.2/merge_vignette.html
 
-## First visualize the data before running batch effect correction
-There are a fiew
+## Visualize
+
+First, visualize the data before running batch effect correction. Within this command, we will also be normalizing, scaling the data, and calculating gene and feature variance which will be used to run a PCA and UMAP.
+
 ```{r}
 brain.combined <- NormalizeData(brain.combined) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
 brain.combined <- RunUMAP(brain.combined, dims = 1:30)
 DimPlot(brain.combined, group.by = "orig.ident")
 ```
-We can see the two samples are not mixed well.
+We can see the two samples are not mixed well. But they are better than they were before (see Loupe above). This is probably an effect of normalization, which can help sometimes to correct for small differences.
 
 ## Run harmony
 The next few commands are adapted from the vignette here: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/harmony.html
